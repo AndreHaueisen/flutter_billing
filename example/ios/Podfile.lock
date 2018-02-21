@@ -4,14 +4,14 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
-  - Flutter (from `/Users/Vladimir/Projects/github.com/flutter/bin/cache/artifacts/engine/ios`)
-  - flutter_billing (from `/Users/Vladimir/Projects/github.com/flutter_billing/ios`)
+  - Flutter (from `/Users/animeshjain/Library/flutter/bin/cache/artifacts/engine/ios-release`)
+  - flutter_billing (from `/Users/animeshjain/Projects/try/flutter_billing/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
-    :path: /Users/Vladimir/Projects/github.com/flutter/bin/cache/artifacts/engine/ios
+    :path: /Users/animeshjain/Library/flutter/bin/cache/artifacts/engine/ios-release
   flutter_billing:
-    :path: /Users/Vladimir/Projects/github.com/flutter_billing/ios
+    :path: /Users/animeshjain/Projects/try/flutter_billing/ios
 
 SPEC CHECKSUMS:
   Flutter: d674e78c937094a75ac71dd77e921e840bea3dbf

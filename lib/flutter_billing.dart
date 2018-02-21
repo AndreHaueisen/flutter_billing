@@ -77,7 +77,7 @@ class Billing {
 
   final BillingErrorCallback _onError;
   final Map<String, BillingProduct> _cachedProducts = new Map();
-  final Set<String> _purchasedProducts = new Set();
+  final Map<String, String> _purchasedProductsTokenMap = new Map();
   bool _purchasesFetched = false;
 
   /// Products details of supplied product identifiers.
@@ -106,7 +106,7 @@ class Billing {
                 title: product['title'],
                 description: product['description'],
                 currency: product['currency'],
-                amount: product['amount'],
+                amount: product['amount'] is double ? product['amount'].toInt() : product['amount'],
               ),
         );
         _cachedProducts.addAll(products);
@@ -129,17 +129,17 @@ class Billing {
   /// Purchased products identifiers.
   ///
   /// Returns products identifiers that are already purchased.
-  Future<Set<String>> getPurchases() {
+  Future<Map<String, String>> getPurchases() {
     if (_purchasesFetched) {
-      return new Future.value(new Set.from(_purchasedProducts));
+      return new Future.value(new Map.from(_purchasedProductsTokenMap));
     }
 
     return synchronized(this, () async {
       try {
-        final List<String> purchases = await _channel.invokeMethod('fetchPurchases');
-        _purchasedProducts.addAll(purchases);
+        final Map<String, String> purchases = await _channel.invokeMethod('fetchPurchases');
+        _purchasedProductsTokenMap.addAll(purchases);
         _purchasesFetched = true;
-        return _purchasedProducts;
+        return _purchasedProductsTokenMap;
       } catch (e) {
         if (_onError != null) _onError(e);
         return new Set.identity();
@@ -153,30 +153,45 @@ class Billing {
   Future<bool> isPurchased(String identifier) async {
     assert(identifier != null);
 
-    final Set<String> purchases = await getPurchases();
-    return purchases.contains(identifier);
+    final Map<String, String> purchases = await getPurchases();
+    return purchases.containsKey(identifier);
   }
 
   /// Purchase a product.
   ///
   /// This would trigger platform UI to walk a user through steps of purchasing the product.
   /// Returns updated list of product identifiers that have been purchased.
-  Future<bool> purchase(String identifier) {
+  Future<bool> purchase(String identifier, {bool consumable: false}) {
     assert(identifier != null);
-
-    if (_purchasedProducts.contains(identifier)) {
-      return new Future.value(true);
-    }
 
     return synchronized(this, () async {
       try {
-        final List<String> purchases =
+        final Map<String, String> purchases =
             await _channel.invokeMethod('purchase', {'identifier': identifier});
-        _purchasedProducts.addAll(purchases);
-        return purchases.contains(identifier);
+        if (consumable && purchases[identifier] != null && purchases[identifier].isNotEmpty) {
+          // call consume purchase
+          await consumePurchase(purchases[identifier]);
+        }
+        _purchasedProductsTokenMap.addAll(purchases);
+        return purchases.containsKey(identifier);
       } catch (e) {
         if (_onError != null) _onError(e);
         return false;
+      }
+    });
+  }
+
+  /// Consume a Purchase (Android only).
+  Future<String> consumePurchase(String purchaseToken) {
+    assert(purchaseToken != null);
+
+    return synchronized(this, () async {
+      try {
+        final String returnToken = await _channel.invokeMethod('consumePurchase', {'purchaseToken': purchaseToken});
+        return returnToken;
+      } catch (e) {
+        if (_onError != null) _onError(e);
+        return null;
       }
     });
   }

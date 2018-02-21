@@ -10,6 +10,7 @@ import com.android.billingclient.api.BillingClient.BillingResponse;
 import com.android.billingclient.api.BillingClient.SkuType;
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
+import com.android.billingclient.api.ConsumeResponseListener;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.android.billingclient.api.SkuDetails;
@@ -84,6 +85,8 @@ public final class BillingPlugin implements MethodCallHandler {
             purchase(methodCall.<String>argument("identifier"), result);
         } else if ("fetchProducts".equals(methodCall.method)) {
             fetchProducts(methodCall.<List<String>>argument("identifiers"), result);
+        } else if ("consumePurchase".equals(methodCall.method)) {
+            consumePurchase(methodCall.<String>argument("purchaseToken"), result);
         } else {
             result.notImplemented();
         }
@@ -155,6 +158,29 @@ public final class BillingPlugin implements MethodCallHandler {
         });
     }
 
+    private void consumePurchase(final String purchaseToken, final Result result) {
+        executeServiceRequest(new Request() {
+            @Override
+            public void execute() {
+                billingClient.consumeAsync(purchaseToken, new ConsumeResponseListener() {
+                    @Override
+                    public void onConsumeResponse(int responseCode, String purchaseToken) {
+                        if (responseCode == BillingResponse.OK) {
+                            result.success(purchaseToken);
+                        } else {
+                            result.error("ERROR", "Failed to consume purchase with error " + responseCode, null);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void failed() {
+                result.error("UNAVAILABLE", "Billing service is unavailable!", null);
+            }
+        });
+    }
+
     private void fetchPurchases(final Result result) {
         executeServiceRequest(new Request() {
             @Override
@@ -163,7 +189,11 @@ public final class BillingPlugin implements MethodCallHandler {
                 final int responseCode = purchasesResult.getResponseCode();
 
                 if (responseCode == BillingResponse.OK) {
-                    result.success(getIdentifiers(purchasesResult.getPurchasesList()));
+                    Log.d(TAG, "Successfully retrieved purchases...");
+                    for (Purchase purchase : purchasesResult.getPurchasesList()) {
+                        Log.d(TAG, purchase.toString());
+                    }
+                    result.success(getIdentifiersPurchaseTokenMap(purchasesResult.getPurchasesList()));
                 } else {
                     result.error("ERROR", "Failed to query purchases with error " + responseCode, null);
                 }
@@ -186,6 +216,18 @@ public final class BillingPlugin implements MethodCallHandler {
         }
 
         return identifiers;
+    }
+
+    private Map<String, String> getIdentifiersPurchaseTokenMap(List<Purchase> purchases) {
+        if (purchases == null) return Collections.emptyMap();
+
+        Map<String, String> purchaseTokenMap = new HashMap<>();
+
+        for (Purchase purchase : purchases) {
+            purchaseTokenMap.put(purchase.getSku(), purchase.getPurchaseToken());
+        }
+
+        return purchaseTokenMap;
     }
 
     private void stopServiceConnection() {
@@ -238,7 +280,7 @@ public final class BillingPlugin implements MethodCallHandler {
 
                 for (String identifier : identifiers) {
                     final Result result = pendingPurchaseRequests.remove(identifier);
-                    if (result != null) result.success(identifiers);
+                    if (result != null) result.success(getIdentifiersPurchaseTokenMap(purchases));
                 }
             } else {
                 for (Result result : pendingPurchaseRequests.values()) {

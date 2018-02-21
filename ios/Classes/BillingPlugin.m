@@ -100,8 +100,14 @@
     [fetchPurchases removeAllObjects];
 
     NSArray<NSString*>* productIdentifiers = [purchases allObjects];
+    NSMutableDictionary<NSString*, NSString*>* productKeyMap = [[NSMutableDictionary alloc] init];
+    for (int i = 0; i < productIdentifiers.count; i++) {
+        NSString *productKey = productIdentifiers[i];
+        [productKeyMap setObject:@"" forKey:productKey];
+    }
+
     [results enumerateObjectsUsingBlock:^(FlutterResult result, NSUInteger idx, BOOL* stop) {
-        result(productIdentifiers);
+        result(productKeyMap);
     }];
 }
 
@@ -119,8 +125,14 @@
     }];
 
     NSArray<NSString*>* productIdentifiers = [purchases allObjects];
+    NSMutableDictionary<NSString*, NSString*>* productKeyMap = [[NSMutableDictionary alloc] init];
+    for (int i = 0; i < productIdentifiers.count; i++) {
+        NSString *productKey = productIdentifiers[i];
+        [productKeyMap setObject:@"" forKey:productKey];
+    }
+    
     [results enumerateObjectsUsingBlock:^(FlutterResult result, NSUInteger idx, BOOL* stop) {
-        result(productIdentifiers);
+        result(productKeyMap);
     }];
 }
 
