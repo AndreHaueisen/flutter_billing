@@ -106,7 +106,7 @@ class Billing {
                 title: product['title'],
                 description: product['description'],
                 currency: product['currency'],
-                amount: product['amount'] is double ? product['amount'].toInt() : product['amount'],
+                amount: product['amount'] is double ? (product['amount']*100).toInt() : product['amount'],
               ),
         );
         _cachedProducts.addAll(products);
