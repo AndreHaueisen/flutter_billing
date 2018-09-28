@@ -142,7 +142,7 @@ class Billing {
         return _purchasedProductsTokenMap;
       } catch (e) {
         if (_onError != null) _onError(e);
-        return new Set.identity();
+        return new Map.identity();
       }
     });
   }
